@@ -1,0 +1,21 @@
+version: "3.7"
+
+services:
+  api.services.duck:
+    build:
+      context: ./
+      dockerfile: ./Dockerfile
+    container_name: api.services.duck
+    restart: always
+    ports:
+      - 86:80
+    networks:
+      - npm
+      - api.services.duck
+
+networks:
+  api.services.duck:
+    name: api.services.duck
+    driver: bridge
+  npm:
+    external: true
