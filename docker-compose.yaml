@@ -8,7 +8,7 @@ services:
     container_name: api.services.duck
     restart: always
     ports:
-      - 86:80
+      - 89:80
     networks:
       - npm
       - api.services.duck
