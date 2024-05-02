@@ -103,7 +103,7 @@ async def login(form: OAuth2PasswordRequestForm = Depends()):
             status_code=status.HTTP_400_BAD_REQUEST, detail="La contraseña no es correcta")
 
     access_token = {"sub": user.username,
-                    "exp": datetime.now(datetime.UTC) + timedelta(minutes=ACCESS_TOKEN_DURATION)}
+                    "exp": datetime.now() + timedelta(minutes=ACCESS_TOKEN_DURATION)}
 
     return {"access_token": jwt.encode(access_token, SECRET, algorithm=ALGORITHM), "token_type": "bearer"}
 
