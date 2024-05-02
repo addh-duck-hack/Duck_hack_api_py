@@ -1,10 +1,15 @@
-# Clase en vídeo: https://youtu.be/_y9qQZXE24A?t=20480
-
-### User model ###
-
 from pydantic import BaseModel
 from typing import Optional
 
+class RequestAuth(BaseModel):
+    uuid: str
+
+class Device(BaseModel):
+    id: str
+    token: str
+    uuid: str
+    exp: str
+    id_user: str
 
 class User(BaseModel):
     id: Optional[str]

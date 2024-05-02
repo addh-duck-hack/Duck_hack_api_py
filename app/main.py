@@ -1,13 +1,5 @@
-# Clase en vídeo: https://youtu.be/_y9qQZXE24A
-
-### Hola Mundo ###
-
-# Documentación oficial: https://fastapi.tiangolo.com/es/
-
-# Instala FastAPI: pip install "fastapi[all]"
-
 from fastapi import FastAPI
-from app.routers import products, users, basic_auth_users, jwt_auth_users, users_db
+from app.routers import products, users, basic_auth_users, jwt_auth_users, users_db, auth_api
 from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
@@ -28,6 +20,7 @@ app.include_router(users_db.router)
 # Clase en vídeo: https://youtu.be/_y9qQZXE24A?t=13618
 app.mount("/app/static", StaticFiles(directory="app/static"), name="static")
 
+app.include_router(auth_api.router)
 
 # Url local: http://127.0.0.1:8000
 

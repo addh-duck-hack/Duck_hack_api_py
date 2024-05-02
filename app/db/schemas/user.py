@@ -1,7 +1,4 @@
-# Clase en vídeo (22/12/2022): https://www.twitch.tv/videos/1686104006
-
 ### User schema ###
-
 def user_schema(user) -> dict:
     return {"id": str(user["_id"]),
             "username": user["username"],
@@ -10,3 +7,13 @@ def user_schema(user) -> dict:
 
 def users_schema(users) -> list:
     return [user_schema(user) for user in users]
+
+
+### Convertir registro de la base en diccionario ###
+def device_schema(device) -> dict:
+    return {
+        "id": str(device["_id"]),
+        "token": device["token"],
+        "uuid": device["uuid"],
+        "exp": device["exp"],
+        "id_user": device["id_user"]}
