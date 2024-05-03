@@ -25,5 +25,6 @@ def session_schema(session) -> dict:
         "id": str(session["_id"]),
         "token": session["token"],
         "date": session["date"],
+        "uuid": session["uuid"],
         "exp": session["exp"],
         "user_id": str(session["user_id"])}

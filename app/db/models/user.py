@@ -28,5 +28,6 @@ class Session(BaseModel):
     id: str
     token: str
     date: str
+    uuid: str
     exp: str
     user_id: str

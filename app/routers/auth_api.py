@@ -33,7 +33,6 @@ def search_device(field: str, key: str):
         return {"error": "No se ha encontrado el dispositivo"}
 
 def search_user(field: str, key):
-    print(f"{field}:{key}")
     try:
         user = db_client.users.find_one({field: key})
         return User(**user_schema(user))
@@ -41,14 +40,13 @@ def search_user(field: str, key):
         return {"error": "No se ha encontrado el usuario"}
     
 def search_session(id: str):
-    print(f"_id: {id}")
     try:
         session = db_client.sessions.find_one({"_id": ObjectId(id)})
         return Session(**session_schema(session))
     except:
         return {"error": "No se encontro la sesion"}
     
-def new_device(uuid: str):
+def new_device(uuid: str, user_id: str):
     expiration = datetime.now() + timedelta(hours=ACCESS_TOKEN_DURATION)
     expiration_format = expiration.strftime('%d/%m/%Y %H:%M')
     access_token = {
@@ -60,9 +58,9 @@ def new_device(uuid: str):
     return {"token": jwt.encode(access_token, SECRET, algorithm=ALGORITHM),
             "uuid": uuid,
             "exp": expiration_format,
-            "user_id": ""}
+            "user_id": user_id}
 
-def create_session(user_id: str) -> str:
+def create_session(user_id: str, uuid: str) -> str:
     date_format = datetime.now().strftime('%d/%m/%Y %H:%M')
     expiration = datetime.now() + timedelta(hours=ACCESS_TOKEN_DURATION)
     expiration_format = expiration.strftime('%d/%m/%Y %H:%M')
@@ -75,6 +73,7 @@ def create_session(user_id: str) -> str:
     new_session = {
         "token": jwt.encode(access_token, SECRET, algorithm=ALGORITHM),
         "date": date_format,
+        "uuid": uuid,
         "exp": expiration_format,
         "user_id": ObjectId(user_id)
     }
@@ -113,22 +112,22 @@ async def validate_device(request: RequestAuth):
         old_date = datetime.strptime(old_auth.exp, '%d/%m/%Y %H:%M')
         if current_date > old_date:
             print("Token vencido se otorga uno nuevo")
-            device = new_device(request.uuid)
+            device = new_device(request.uuid, "")
             db_client.devices.find_one_and_replace({"_id": ObjectId(old_auth.id)},device)
             return search_device(field="_id", key= ObjectId(old_auth.id))
         else:
             print("Token vigente")
             return old_auth
     print("No existe token para este ID, se otroga uno nuevo")
-    device = new_device(request.uuid)
+    device = new_device(request.uuid, new_device)
     id_device = db_client.devices.insert_one(device).inserted_id
     return search_device(field="_id", key= ObjectId(id_device))
 
 # Service Login
 @router.post("/login")
 async def login(form: RequestLogin, current_device: Annotated[Device, Depends(validate_token)]):
-    print(form)
     user:User
+    known_device = False
     # Si se intenta logear con faceID validamos que el dispositivo este asociado a una cuenta
     if form.face_id:
         if current_device.user_id == "":
@@ -136,17 +135,20 @@ async def login(form: RequestLogin, current_device: Annotated[Device, Depends(va
         else:
             print("El dispositivo esta autenticado para usar FaceID")
             user = search_user("_id",ObjectId(current_device.user_id))
+            known_device = True
     else:
         # Recuperamos usuario por el telefono y validamos la contraseña
         print("Se recupera usuario a travez del telefono")
         user = search_user("phone",form.phone)
-        print(user)
         if not type(user) == User:
             raise exception_401("Credenciales incorrectas")
         if not crypt.verify(form.password, user.password):
             raise exception_401("Credenciales incorrectas")
 
-    id_session = create_session(user.id)
+    id_session = create_session(user.id, current_device.uuid)
     session = search_session(id_session)
+    if not known_device:
+        device = new_device(current_device.uuid, user.id)
+        db_client.devices.find_one_and_replace({"_id": ObjectId(current_device.id)},device)
 
     return {"user": user, "session": session}
