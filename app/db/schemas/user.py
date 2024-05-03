@@ -1,9 +1,11 @@
 ### User schema ###
 def user_schema(user) -> dict:
     return {"id": str(user["_id"]),
-            "username": user["username"],
-            "email": user["email"]}
-
+            "full_name": user["full_name"],
+            "phone": user["phone"],
+            "email": user["email"],
+            "password": user["password"],
+            "disabled": user["disabled"]}
 
 def users_schema(users) -> list:
     return [user_schema(user) for user in users]
@@ -16,4 +18,12 @@ def device_schema(device) -> dict:
         "token": device["token"],
         "uuid": device["uuid"],
         "exp": device["exp"],
-        "id_user": device["id_user"]}
+        "user_id": device["user_id"]}
+
+def session_schema(session) -> dict:
+    return {
+        "id": str(session["_id"]),
+        "token": session["token"],
+        "date": session["date"],
+        "exp": session["exp"],
+        "user_id": str(session["user_id"])}
