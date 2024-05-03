@@ -1,13 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
+from typing import Annotated, Union
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt, JWTError
 from passlib.context import CryptContext
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from bson import ObjectId
 from app.db.models.user import Device
 from app.db.client import db_client
-from app.db.models.user import Device, RequestAuth
+from app.db.models.user import Device, RequestAuth, RequestLogin
 from app.db.schemas.user import device_schema
 
 ALGORITHM = "HS256"
@@ -19,10 +20,40 @@ router = APIRouter(prefix="/auth",
                    tags=["Autenticacion de dispositivos y usuarios al API"],
                    responses={status.HTTP_404_NOT_FOUND: {"message": "No disponible"}})
 
-oauth2 = OAuth2PasswordBearer(tokenUrl="login")
+oauth2 = OAuth2PasswordBearer(tokenUrl="token")
 
 crypt = CryptContext(schemes=["bcrypt"])
 
+#Helpers
+def search_token(field: str, key: str):
+    try:
+        device = db_client.devices.find_one({field: key})
+        return Device(**device_schema(device))
+    except:
+        return {"error": "No se ha encontrado el usuario"}
+    
+def new_device(uuid: str):
+    expiration = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_DURATION)
+    expiration = expiration.strftime('%d/%m/%Y %H:%M')
+    access_token = {
+        "uuid": uuid,
+        "exp": expiration
+    }
+    new_device = {
+        "token": jwt.encode(access_token, SECRET, algorithm=ALGORITHM),
+        "uuid": uuid,
+        "exp": expiration,
+        "id_user": ""
+    }
+
+    return db_client.devices.insert_one(new_device).inserted_id
+
+# Auth
+async def validate_token(token: Annotated[str, Depends(oauth2)]):
+    print(token)
+    return ""
+
+# Service token
 @router.post("/token", response_model=Device, status_code=status.HTTP_200_OK)
 async def validate_device(request: RequestAuth):
     print(f"UUID recibido {request.uuid}")
@@ -40,27 +71,8 @@ async def validate_device(request: RequestAuth):
     id_device = new_device(request.uuid)
     return search_token(field="_id", key= ObjectId(id_device))
 
-
-#Helpers
-def search_token(field: str, key: str):
-    try:
-        device = db_client.devices.find_one({field: key})
-        return Device(**device_schema(device))
-    except:
-        return {"error": "No se ha encontrado el usuario"}
-    
-def new_device(uuid: str):
-    expiration = datetime.now() + timedelta(minutes=ACCESS_TOKEN_DURATION)
-    expiration = expiration.strftime('%d/%m/%Y %H:%M')
-    access_token = {
-        "uuid": uuid,
-        "exp": expiration
-    }
-    new_device = {
-        "token": jwt.encode(access_token, SECRET, algorithm=ALGORITHM),
-        "uuid": uuid,
-        "exp": expiration,
-        "id_user": ""
-    }
-
-    return db_client.devices.insert_one(new_device).inserted_id
+# Service Login
+# @router.post("/login")
+# async def login(form: RequestLogin, current_user: Annotated[Device, Depends(validate_token)]):
+#     print(form)
+#     return current_user

@@ -4,6 +4,10 @@ from typing import Optional
 class RequestAuth(BaseModel):
     uuid: str
 
+class RequestLogin(BaseModel):
+    phone: str
+    password: str
+
 class Device(BaseModel):
     id: str
     token: str
