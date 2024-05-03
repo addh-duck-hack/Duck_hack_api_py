@@ -12,7 +12,7 @@ from app.db.models.user import Device, RequestAuth, RequestLogin
 from app.db.schemas.user import device_schema
 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_DURATION = 1
+ACCESS_TOKEN_DURATION = 24
 SECRET = "b9ec9a97d47715d921f35b9af80dabd67a301de0"
 
 
@@ -33,7 +33,7 @@ def search_token(field: str, key: str):
         return {"error": "No se ha encontrado el usuario"}
     
 def new_device(uuid: str):
-    expiration = datetime.now()
+    expiration = datetime.now()  + timedelta(hours=ACCESS_TOKEN_DURATION)
     expiration = expiration.strftime('%d/%m/%Y %H:%M')
     access_token = {
         "uuid": uuid,
