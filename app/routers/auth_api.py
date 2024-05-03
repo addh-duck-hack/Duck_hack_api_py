@@ -118,8 +118,8 @@ async def validate_device(request: RequestAuth):
         else:
             print("Token vigente")
             return old_auth
-    print("No existe token para este ID, se otroga uno nuevo")
-    device = new_device(request.uuid, new_device)
+    print("No existe token para este ID, se otorga uno nuevo")
+    device = new_device(request.uuid, "")
     id_device = db_client.devices.insert_one(device).inserted_id
     return search_device(field="_id", key= ObjectId(id_device))
 
