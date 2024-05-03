@@ -12,7 +12,7 @@ from app.db.models.user import Device, RequestAuth, RequestLogin
 from app.db.schemas.user import device_schema
 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_DURATION = 24
+ACCESS_TOKEN_DURATION = 1
 SECRET = "b9ec9a97d47715d921f35b9af80dabd67a301de0"
 
 
@@ -33,20 +33,17 @@ def search_token(field: str, key: str):
         return {"error": "No se ha encontrado el usuario"}
     
 def new_device(uuid: str):
-    expiration = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_DURATION)
+    expiration = datetime.now()
     expiration = expiration.strftime('%d/%m/%Y %H:%M')
     access_token = {
         "uuid": uuid,
         "exp": expiration
     }
-    new_device = {
-        "token": jwt.encode(access_token, SECRET, algorithm=ALGORITHM),
-        "uuid": uuid,
-        "exp": expiration,
-        "id_user": ""
-    }
 
-    return db_client.devices.insert_one(new_device).inserted_id
+    return {"token": jwt.encode(access_token, SECRET, algorithm=ALGORITHM),
+            "uuid": uuid,
+            "exp": expiration,
+            "id_user": ""}
 
 # Auth
 async def validate_token(token: Annotated[str, Depends(oauth2)]):
@@ -60,19 +57,25 @@ async def validate_device(request: RequestAuth):
     old_auth = search_token(field="uuid", key= request.uuid)
     if type(old_auth) == Device:
         current_date = datetime.now()
+        print(current_date)
         old_date = datetime.strptime(old_auth.exp, '%d/%m/%Y %H:%M')
+        print(old_date)
         if current_date > old_date:
             print("Token vencido se otrorga uno nuevo")
-            id_device = new_device(request.uuid)
-            return search_token(field="_id", key= ObjectId(id_device))
+            device = new_device(request.uuid)
+            print(device)
+            db_client.devices.find_one_and_replace({"_id": ObjectId(old_auth.id)},device)
+            return search_token(field="_id", key= ObjectId(old_auth.id))
         else:
             print("Token vigente se regresa")
             return old_auth
-    id_device = new_device(request.uuid)
+    print("No existe token para este ID, se otroga uno nuevo")
+    device = new_device(request.uuid)
+    id_device = db_client.devices.insert_one(device).inserted_id
     return search_token(field="_id", key= ObjectId(id_device))
 
 # Service Login
-# @router.post("/login")
-# async def login(form: RequestLogin, current_user: Annotated[Device, Depends(validate_token)]):
-#     print(form)
-#     return current_user
+@router.post("/login")
+async def login(form: RequestLogin, current_user: Annotated[Device, Depends(validate_token)]):
+    print(form)
+    return current_user
