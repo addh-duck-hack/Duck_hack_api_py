@@ -22,6 +22,7 @@ class User(BaseModel):
     phone: str
     email: str
     password: str
+    registration_date: str
     disabled: bool
 
 class Session(BaseModel):

@@ -5,6 +5,7 @@ def user_schema(user) -> dict:
             "phone": user["phone"],
             "email": user["email"],
             "password": user["password"],
+            "registration_date": user["registration_date"],
             "disabled": user["disabled"]}
 
 def users_schema(users) -> list:

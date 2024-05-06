@@ -4,6 +4,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
+import pytz
 from bson import ObjectId
 from app.db.models.user import Device
 from app.db.client import db_client
@@ -46,7 +47,7 @@ def search_session(id: str):
         return {"error": "No se encontro la sesion"}
     
 def new_device(uuid: str, user_id: str):
-    expiration = datetime.now() + timedelta(hours=ACCESS_TOKEN_DURATION)
+    expiration = datetime.now(pytz.timezone("America/Mexico_City")) + timedelta(hours=ACCESS_TOKEN_DURATION)
     expiration_format = expiration.strftime('%d/%m/%Y %H:%M')
     access_token = {
         "exp": expiration,
@@ -60,8 +61,8 @@ def new_device(uuid: str, user_id: str):
             "user_id": user_id}
 
 def create_session(user_id: str, uuid: str) -> str:
-    date_format = datetime.now().strftime('%d/%m/%Y %H:%M')
-    expiration = datetime.now() + timedelta(hours=ACCESS_TOKEN_DURATION)
+    date_format = datetime.now(pytz.timezone("America/Mexico_City")).strftime('%d/%m/%Y %H:%M')
+    expiration = datetime.now(pytz.timezone("America/Mexico_City")) + timedelta(hours=ACCESS_TOKEN_DURATION)
     expiration_format = expiration.strftime('%d/%m/%Y %H:%M')
     access_token = {
         "exp": expiration,
@@ -91,7 +92,7 @@ async def validate_token(token: Annotated[str, Depends(oauth2)]):
         exp_format = jwt.decode(token, SECRET, algorithms=[ALGORITHM]).get("exp_format")
         if uuid is None:
             raise exception_401("Credenciales de autenticación inválidas")
-        current_date = datetime.now()
+        current_date = datetime.now(pytz.timezone("America/Mexico_City"))
         old_date = datetime.strptime(exp_format, '%d/%m/%Y %H:%M')
         if current_date > old_date:
             print("Token vencido no puede ingresar con ese token")
@@ -106,7 +107,7 @@ async def validate_device(request: RequestAuth):
     print(f"UUID recibido {request.uuid}")
     old_auth = search_device(field="uuid", key= request.uuid)
     if type(old_auth) == Device:
-        current_date = datetime.now()
+        current_date = datetime.now(pytz.timezone("America/Mexico_City"))
         old_date = datetime.strptime(old_auth.exp, '%d/%m/%Y %H:%M')
         if current_date > old_date:
             print("Token vencido se otorga uno nuevo")
