@@ -18,7 +18,7 @@ def device_schema(device) -> dict:
         "token": device["token"],
         "uuid": device["uuid"],
         "exp": device["exp"],
-        "user_id": device["user_id"]}
+        "user_id": str(device["user_id"])}
 
 def session_schema(session) -> dict:
     return {

@@ -1,10 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
-from typing import Annotated, Union
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from typing import Annotated
+from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from passlib.context import CryptContext
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from bson import ObjectId
 from app.db.models.user import Device
 from app.db.client import db_client
@@ -87,7 +86,6 @@ def exception_401(error: str):
 
 # Auth
 async def validate_token(token: Annotated[str, Depends(oauth2)]):
-    print(token)
     try:
         uuid = jwt.decode(token, SECRET, algorithms=[ALGORITHM]).get("uuid")
         exp_format = jwt.decode(token, SECRET, algorithms=[ALGORITHM]).get("exp_format")
@@ -138,7 +136,6 @@ async def login(form: RequestLogin, current_device: Annotated[Device, Depends(va
             known_device = True
     else:
         # Recuperamos usuario por el telefono y validamos la contraseña
-        print("Se recupera usuario a travez del telefono")
         user = search_user("phone",form.phone)
         if not type(user) == User:
             raise exception_401("Credenciales incorrectas")

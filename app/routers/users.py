@@ -1,97 +1,74 @@
-# Clase en vídeo: https://youtu.be/_y9qQZXE24A?t=5382
+from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Annotated
+from fastapi.security import OAuth2PasswordBearer
+from jose import jwt, JWTError
+from passlib.context import CryptContext
+from datetime import datetime, timedelta
+from bson import ObjectId
+from app.db.models.user import Device
+from app.db.client import db_client
+from app.db.models.user import Device, RequestAuth, RequestLogin, User, Session
+from app.db.schemas.user import device_schema, user_schema, session_schema
+from app.routers.auth_api import validate_token, search_user, new_device, exception_401
 
-### Users API ###
-
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-
-# Inicia el server: uvicorn users:app --reload
-
-router = APIRouter()
-
-
-class User(BaseModel):
-    id: int
-    name: str
-    surname: str
-    url: str
-    age: int
+ALGORITHM = "HS256"
+ACCESS_TOKEN_DURATION = 24
+SECRET = "b9ec9a97d47715d921f35b9af80dabd67a301de0"
 
 
-users_list = [User(id=1, name="Brais", surname="Moure", url="https://moure.dev", age=35),
-              User(id=2, name="Moure", surname="Dev",
-                   url="https://mouredev.com", age=35),
-              User(id=3, name="Brais", surname="Dahlberg", url="https://haakon.com", age=33)]
+router = APIRouter(prefix="/user",
+                   tags=["Autenticacion de dispositivos y usuarios al API"],
+                   responses={status.HTTP_404_NOT_FOUND: {"message": "No disponible"}})
 
+oauth2 = OAuth2PasswordBearer(tokenUrl="token")
 
-@router.get("/usersjson")
-async def usersjson():  # Creamos un JSON a mano
-    return [{"name": "Brais", "surname": "Moure", "url": "https://moure.dev", "age": 35},
-            {"name": "Moure", "surname": "Dev",
-                "url": "https://mouredev.com", "age": 35},
-            {"name": "Haakon", "surname": "Dahlberg", "url": "https://haakon.com", "age": 33}]
+crypt = CryptContext(schemes=["bcrypt"])
 
-
-@router.get("/users")
-async def users():
-    return users_list
-
-
-@router.get("/user/{id}")  # Path
-async def user(id: int):
-    return search_user(id)
-
-
-@router.get("/user/")  # Query
-async def user(id: int):
-    return search_user(id)
-
-
-# Clase en vídeo: https://youtu.be/_y9qQZXE24A?t=8529
-
-
-@router.post("/user/", response_model=User, status_code=201)
-async def user(user: User):
-    if type(search_user(user.id)) == User:
-        raise HTTPException(status_code=404, detail="El usuario ya existe")
-
-    users_list.append(user)
-    return user
-
-
-@router.put("/user/")
-async def user(user: User):
-
-    found = False
-
-    for index, saved_user in enumerate(users_list):
-        if saved_user.id == user.id:
-            users_list[index] = user
-            found = True
-
-    if not found:
-        return {"error": "No se ha actualizado el usuario"}
-
-    return user
-
-
-@router.delete("/user/{id}")
-async def user(id: int):
-
-    found = False
-
-    for index, saved_user in enumerate(users_list):
-        if saved_user.id == id:
-            del users_list[index]
-            found = True
-
-    if not found:
-        return {"error": "No se ha eliminado el usuario"}
-
-
-def search_user(id: int):
-    users = filter(lambda user: user.id == id, users_list)
+# Helpers
+# Auth
+async def validate_session(token: Annotated[str, Depends(oauth2)]):
     try:
-        return list(users)[0]
-    except:
-        return {"error": "No se ha encontrado el usuario"}
+        user_id = jwt.decode(token, SECRET, algorithms=[ALGORITHM]).get("user_id")
+        exp_format = jwt.decode(token, SECRET, algorithms=[ALGORITHM]).get("exp_format")
+        if user_id is None:
+            raise exception_401("Credenciales de autenticación inválidas")
+        current_date = datetime.now()
+        old_date = datetime.strptime(exp_format, '%d/%m/%Y %H:%M')
+        if current_date > old_date:
+            print("Token vencido no puede ingresar con ese token")
+            raise exception_401("El token vencio, favor de cerrar y abrir la aplicación")
+    except JWTError:
+        raise exception_401("No se pudieron validar las credenciales")
+    return search_device("uuid", uuid)
+
+# Servicio nuevo usuario
+@router.post("/", response_model=User, status_code=status.HTTP_200_OK)
+async def new(user: User, current_device: Annotated[Device, Depends(validate_token)]):
+    print("El token se valido con exito")
+    current_user = search_user("phone",user.phone)
+    if type(current_user) == User:
+        raise exception_401("El telefono ya se encuentra registrado")
+    current_user = search_user("email",user.email)
+    if type(current_user) == User:
+        raise exception_401("El correo ya se encuentra registrado")
+
+    user_dict = dict(user)
+    del user_dict["id"]
+    user_dict["password"] = crypt.hash(user.password)
+
+    id_new_user = db_client.users.insert_one(user_dict).inserted_id
+    new_user = search_user("_id",ObjectId(id_new_user))
+
+    device = new_device(current_device.uuid, id_new_user)
+    db_client.devices.find_one_and_replace({"_id": ObjectId(current_device.id)},device)
+
+    return new_user
+
+# Servicio modificar usuario
+# @router.put("/", response_model=User, status_code=status.HTTP_200_OK)
+# async def edit(user: User, current_device: Annotated[Device, Depends(validate_token)]):
+
+@router.get("/")
+async def edit():
+    print(datetime.now())
+    return ""
