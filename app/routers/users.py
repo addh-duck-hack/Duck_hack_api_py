@@ -33,7 +33,8 @@ async def validate_session(token: Annotated[str, Depends(oauth2)]):
         exp_format = jwt.decode(token, SECRET, algorithms=[ALGORITHM]).get("exp_format")
         if user_id is None:
             raise exception_401("Credenciales de autenticación inválidas")
-        current_date = datetime.now()
+        current_date = datetime.now(pytz.timezone("America/Mexico_City")).strftime('%d/%m/%Y %H:%M')
+        current_date = datetime.strptime(current_date, '%d/%m/%Y %H:%M')
         old_date = datetime.strptime(exp_format, '%d/%m/%Y %H:%M')
         if current_date > old_date:
             print("Token vencido no puede ingresar con ese token")

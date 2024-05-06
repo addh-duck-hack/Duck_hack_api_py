@@ -92,7 +92,8 @@ async def validate_token(token: Annotated[str, Depends(oauth2)]):
         exp_format = jwt.decode(token, SECRET, algorithms=[ALGORITHM]).get("exp_format")
         if uuid is None:
             raise exception_401("Credenciales de autenticación inválidas")
-        current_date = datetime.now(pytz.timezone("America/Mexico_City"))
+        current_date = datetime.now(pytz.timezone("America/Mexico_City")).strftime('%d/%m/%Y %H:%M')
+        current_date = datetime.strptime(current_date, '%d/%m/%Y %H:%M')
         old_date = datetime.strptime(exp_format, '%d/%m/%Y %H:%M')
         if current_date > old_date:
             print("Token vencido no puede ingresar con ese token")
@@ -107,7 +108,8 @@ async def validate_device(request: RequestAuth):
     print(f"UUID recibido {request.uuid}")
     old_auth = search_device(field="uuid", key= request.uuid)
     if type(old_auth) == Device:
-        current_date = datetime.now(pytz.timezone("America/Mexico_City"))
+        current_date = datetime.now(pytz.timezone("America/Mexico_City")).strftime('%d/%m/%Y %H:%M')
+        current_date = datetime.strptime(current_date, '%d/%m/%Y %H:%M')
         old_date = datetime.strptime(old_auth.exp, '%d/%m/%Y %H:%M')
         if current_date > old_date:
             print("Token vencido se otorga uno nuevo")
