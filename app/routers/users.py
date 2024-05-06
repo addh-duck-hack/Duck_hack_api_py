@@ -4,6 +4,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
+import pytz
 from bson import ObjectId
 from app.db.models.user import Device
 from app.db.client import db_client
@@ -70,5 +71,5 @@ async def new(user: User, current_device: Annotated[Device, Depends(validate_tok
 
 @router.get("/")
 async def edit():
-    print(datetime.now())
+    print(datetime.now(pytz.timezone("America/Mexico_City")))
     return ""
