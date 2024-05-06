@@ -58,7 +58,7 @@ def new_device(uuid: str, user_id: str):
     return {"token": jwt.encode(access_token, SECRET, algorithm=ALGORITHM),
             "uuid": uuid,
             "exp": expiration_format,
-            "user_id": user_id}
+            "user_id": ObjectId(user_id)}
 
 def create_session(user_id: str, uuid: str) -> str:
     date_format = datetime.now(pytz.timezone("America/Mexico_City")).strftime('%d/%m/%Y %H:%M')
