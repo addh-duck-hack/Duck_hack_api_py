@@ -18,7 +18,7 @@ SECRET = "b9ec9a97d47715d921f35b9af80dabd67a301de0"
 
 
 router = APIRouter(prefix="/user",
-                   tags=["Autenticacion de dispositivos y usuarios al API"],
+                   tags=["CRUD de usuarios"],
                    responses={status.HTTP_404_NOT_FOUND: {"message": "No disponible"}})
 
 oauth2 = OAuth2PasswordBearer(tokenUrl="token")
